@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Étalon — Convertisseur Sciences</title>
+<script src="config.js"></script>
+<style>
+  :root{
+    --paper:#F1F4EE;
+    --paper-line:#CBD4C4;
+    --ink:#20241F;
+    --ink-soft:#565F52;
+    --green:#2F6B4F;
+    --green-deep:#183A2C;
+    --green-soft:#E4EEE6;
+    --red:#B23A2E;
+    --amber:#C9862B;
+    --white:#FCFDFB;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(47,107,79,0.07), transparent 55%),
+      linear-gradient(var(--paper-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 100%, 22px 22px, 22px 22px;
+    color:var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height:100vh;
+    padding:28px 14px 40px;
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+  }
+  .card{
+    width:100%;
+    max-width:420px;
+    margin:0 auto;
+    background:var(--white);
+    border:1.5px solid var(--ink);
+    border-radius:20px;
+    box-shadow: 0 2px 0 var(--ink), 6px 8px 24px rgba(24,58,44,0.10);
+    padding:24px 20px 26px;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .brand-mark{
+    flex:0 0 auto;
+    width:44px; height:44px;
+    border-radius:12px;
+    background:var(--green-deep);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .brand-mark svg{ width:26px; height:26px; }
+  .brand-text{ flex:1; min-width:0; }
+  .brand-text .name{
+    font-family: Charter, Georgia, "Times New Roman", serif;
+    font-size:20px;
+    font-weight:700;
+    line-height:1.15;
+    letter-spacing:-0.01em;
+  }
+  .brand-text .tagline{
+    font-size:10.5px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--green);
+    font-weight:700;
+  }
+  .star-btn{
+    border:none;
+    background:none;
+    font-size:22px;
+    cursor:pointer;
+    color:var(--paper-line);
+    line-height:1;
+    padding:4px;
+    transition:color .15s ease, transform .15s ease;
+  }
+  .star-btn.active{ color:var(--amber); transform:scale(1.1); }
+  .tabs{
+    display:flex; gap:6px; overflow-x:auto; padding-bottom:6px;
+    margin-bottom:18px; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    flex:0 0 auto; padding:7px 13px; border-radius:20px;
+    border:1px solid var(--paper-line); background:var(--white);
+    color:var(--ink-soft); font-size:13px; font-weight:600;
+    cursor:pointer; white-space:nowrap; transition:all .15s ease;
+  }
+  .tab:hover{border-color:var(--green);}
+  .tab.active{ background:var(--green); border-color:var(--green); color:var(--white); }
+  .field-label{
+    font-size:11px; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--ink-soft); font-weight:700; margin-bottom:6px; display:block;
+  }
+  .block{margin-bottom:16px;}
+  input[type=text]{
+    width:100%; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size:24px; padding:12px 14px; border:1.5px solid var(--ink);
+    border-radius:8px; background:var(--white); color:var(--ink); outline:none;
+  }
+  input[type=text]:focus{ border-color:var(--green); box-shadow:0 0 0 3px var(--green-soft); }
+  .units-row{ display:flex; align-items:center; gap:10px; }
+  select{
+    flex:1; min-width:0; font-family: -apple-system, sans-serif; font-size:15px;
+    font-weight:600; padding:10px; border:1.5px solid var(--paper-line);
+    border-radius:8px; background:var(--white); color:var(--ink);
+    appearance:none; -webkit-appearance:none;
+  }
+  select:focus{ outline:none; border-color:var(--green); }
+  .ruler-btn{
+    flex:0 0 auto; width:40px; height:40px; border-radius:50%;
+    border:1.5px solid var(--ink); background:var(--white); display:flex;
+    align-items:center; justify-content:center; cursor:pointer; transition:transform .2s ease;
+  }
+  .ruler-btn:active{ transform:rotate(180deg); }
+  .ruler{
+    height:14px; margin:20px 0 6px; position:relative;
+    background: repeating-linear-gradient(90deg, var(--ink) 0 1.5px, transparent 1.5px 100%);
+    background-size: calc(100%/12) 14px; opacity:.18;
+  }
+  .result{
+    background: var(--white); border:1.5px solid var(--ink); border-radius:10px;
+    padding:20px 16px; text-align:center; position:relative; overflow:hidden;
+  }
+  .result::before{
+    content:""; position:absolute; inset:0;
+    background: linear-gradient(var(--green-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--green-soft) 1px, transparent 1px);
+    background-size:11px 11px; opacity:.5;
+  }
+  .result-value{
+    position:relative; font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size:clamp(28px, 9vw, 40px); font-weight:700; color:var(--green);
+    word-break:break-all; line-height:1.1;
+  }
+  .result-unit{ font-size:16px; font-weight:600; color:var(--ink-soft); margin-left:6px; }
+  .result-sub{
+    position:relative; font-size:13px; color:var(--ink-soft); margin-top:6px;
+    font-family: ui-monospace, monospace;
+  }
+  .formula{
+    margin-top:14px; font-size:13px; color:var(--ink-soft); font-style:italic;
+    display:flex; gap:8px; align-items:flex-start;
+  }
+  .formula .mark{
+    color:var(--red); font-style:normal; font-weight:700;
+    text-decoration: underline wavy var(--red); text-underline-offset:3px;
+  }
+  .actions{ display:flex; gap:8px; margin-top:16px; }
+  .actions button{
+    flex:1; padding:11px 6px; border-radius:8px; border:1.5px solid var(--ink);
+    background:var(--white); font-size:12.5px; font-weight:700; cursor:pointer;
+    color:var(--ink); transition:background .15s ease;
+  }
+  .actions button:hover{ background:var(--green-soft); border-color:var(--green); }
+  .actions button.copied{ background:var(--green); color:var(--white); border-color:var(--green); }
+  .actions button.panel-open{ background:var(--ink); color:var(--white); }
+
+  .panel{
+    margin-top:12px; border:1.5px solid var(--paper-line); border-radius:10px;
+    background:var(--white); overflow:hidden; max-height:0; transition:max-height .25s ease;
+  }
+  .panel.open{ max-height:360px; overflow-y:auto; }
+  .panel-inner{ padding:10px 12px; }
+  .panel-empty{ font-size:13px; color:var(--ink-soft); font-style:italic; padding:8px 4px; }
+  .list-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:9px 4px; border-bottom:1px solid var(--paper); font-size:13px;
+  }
+  .list-item:last-child{ border-bottom:none; }
+  .list-item .main{ cursor:pointer; flex:1; min-width:0; }
+  .list-item .main strong{ display:block; color:var(--ink); font-size:13.5px; }
+  .list-item .main span{ color:var(--ink-soft); font-size:11.5px; }
+  .list-item .remove{
+    border:none; background:none; color:var(--paper-line); font-size:16px;
+    cursor:pointer; line-height:1; padding:2px 4px;
+  }
+  .list-item .remove:hover{ color:var(--red); }
+  .panel-title{
+    font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:700;
+    color:var(--ink-soft); padding:10px 12px 0;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg viewBox="0 0 100 100" fill="none">
+        <rect x="18" y="42" width="64" height="16" rx="8" transform="rotate(-22 50 50)" fill="#FCFDFB"/>
+        <g transform="rotate(-22 50 50)" stroke="#183A2C" stroke-width="2.5">
+          <line x1="26" y1="42" x2="26" y2="50"/>
+          <line x1="36" y1="42" x2="36" y2="52"/>
+          <line x1="46" y1="42" x2="46" y2="50"/>
+          <line x1="56" y1="42" x2="56" y2="52"/>
+          <line x1="66" y1="42" x2="66" y2="50"/>
+        </g>
+        <circle cx="79" cy="53" r="7" fill="#C9862B" transform="rotate(-22 50 50)"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <div class="name">Étalon</div>
+      <div class="tagline">Terminale · Physique · Chimie</div>
+    </div>
+    <button class="star-btn" id="starBtn" title="Ajouter aux favoris" aria-label="Favoris">★</button>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="block">
+    <label class="field-label" for="value">Valeur</label>
+    <input type="text" id="value" inputmode="decimal" value="1">
+  </div>
+
+  <div class="block">
+    <div class="units-row">
+      <div style="flex:1">
+        <label class="field-label">Unité d'entrée</label>
+        <select id="unitFrom"></select>
+      </div>
+      <button class="ruler-btn" id="swap" title="Inverser" aria-label="Inverser les unités">⇅</button>
+      <div style="flex:1">
+        <label class="field-label">Unité de sortie</label>
+        <select id="unitTo"></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="ruler"></div>
+
+  <div class="result">
+    <div><span class="result-value" id="resultValue">—</span><span class="result-unit" id="resultUnit"></span></div>
+    <div class="result-sub" id="resultSub"></div>
+  </div>
+
+  <div class="formula">
+    <span class="mark">Formule</span>
+    <span id="formulaText">—</span>
+  </div>
+
+  <div class="actions">
+    <button id="copyBtn">Copier</button>
+    <button id="favBtn">Favoris</button>
+    <button id="histBtn">Historique</button>
+  </div>
+
+  <div class="panel" id="favPanel">
+    <div class="panel-title">Conversions favorites</div>
+    <div class="panel-inner" id="favList"></div>
+  </div>
+
+  <div class="panel" id="histPanel">
+    <div class="panel-title">Historique récent</div>
+    <div class="panel-inner" id="histList"></div>
+  </div>
+
+  <a id="feedbackLink" href="#" target="_blank" style="display:none; text-align:center; margin-top:14px; font-size:12.5px; color:var(--ink-soft); text-decoration:underline;">Donner mon avis sur l'appli</a>
+</div>
+
+<script>
+const categories = {
+  longueur: { label:"Longueur", type:"linear", units:{
+    "m":1, "km":1000, "cm":0.01, "mm":0.001, "μm":1e-6, "nm":1e-9,
+    "année-lumière":9.4607e15, "u.a.":1.495978707e11
+  }},
+  masse: { label:"Masse", type:"linear", units:{
+    "kg":1, "g":0.001, "mg":1e-6, "tonne":1000, "u (u.m.a.)":1.66053906660e-27
+  }},
+  temps: { label:"Temps", type:"linear", units:{
+    "s":1, "min":60, "h":3600, "jour":86400, "année":31557600
+  }},
+  vitesse: { label:"Vitesse", type:"linear", units:{
+    "m/s":1, "km/h":1/3.6, "km/s":1000, "c (vitesse lumière)":299792458
+  }},
+  angle: { label:"Angle", type:"linear", units:{
+    "rad":1, "°":Math.PI/180, "grad":Math.PI/200, "tour":2*Math.PI
+  }},
+  energie: { label:"Énergie", type:"linear", units:{
+    "J":1, "kJ":1000, "eV":1.602176634e-19, "MeV":1.602176634e-13,
+    "kWh":3.6e6, "cal":4.184
+  }},
+  puissance: { label:"Puissance", type:"linear", units:{
+    "W":1, "kW":1000, "MW":1e6, "ch (cheval-vapeur)":735.5
+  }},
+  pression: { label:"Pression", type:"linear", units:{
+    "Pa":1, "hPa":100, "bar":1e5, "atm":101325, "mmHg":133.322
+  }},
+  volume: { label:"Volume", type:"linear", units:{
+    "L":1, "mL":0.001, "m³":1000, "cm³":0.001
+  }},
+  temperature: { label:"Température", type:"temp", units:{
+    "°C":"c", "K":"k", "°F":"f"
+  }}
+};
+
+const tabsEl = document.getElementById('tabs');
+const valueEl = document.getElementById('value');
+const unitFromEl = document.getElementById('unitFrom');
+const unitToEl = document.getElementById('unitTo');
+const resultValueEl = document.getElementById('resultValue');
+const resultUnitEl = document.getElementById('resultUnit');
+const resultSubEl = document.getElementById('resultSub');
+const formulaTextEl = document.getElementById('formulaText');
+const swapBtn = document.getElementById('swap');
+const copyBtn = document.getElementById('copyBtn');
+const starBtn = document.getElementById('starBtn');
+const favBtn = document.getElementById('favBtn');
+const histBtn = document.getElementById('histBtn');
+const favPanel = document.getElementById('favPanel');
+const histPanel = document.getElementById('histPanel');
+const favList = document.getElementById('favList');
+const histList = document.getElementById('histList');
+
+let currentCat = 'longueur';
+let lastResult = null;
+
+// --- Stockage local (favoris + historique persistent entre les visites) ---
+function loadFavorites(){
+  try{ return JSON.parse(localStorage.getItem('conv_favorites') || '[]'); }catch(e){ return []; }
+}
+function saveFavorites(list){ localStorage.setItem('conv_favorites', JSON.stringify(list)); }
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem('conv_history') || '[]'); }catch(e){ return []; }
+}
+function saveHistory(list){ localStorage.setItem('conv_history', JSON.stringify(list)); }
+
+function buildTabs(){
+  tabsEl.innerHTML = '';
+  Object.keys(categories).forEach(key=>{
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (key===currentCat ? ' active':'');
+    btn.textContent = categories[key].label;
+    btn.onclick = ()=>{ currentCat = key; buildTabs(); buildUnitSelects(); compute(); updateStarState(); };
+    tabsEl.appendChild(btn);
+  });
+}
+
+function buildUnitSelects(preserveFrom, preserveTo){
+  const units = Object.keys(categories[currentCat].units);
+  unitFromEl.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
+  unitToEl.innerHTML = units.map(u=>`<option value="${u}">${u}</option>`).join('');
+  if(preserveFrom && units.includes(preserveFrom)) unitFromEl.value = preserveFrom;
+  else unitFromEl.selectedIndex = 0;
+  if(preserveTo && units.includes(preserveTo)) unitToEl.value = preserveTo;
+  else unitToEl.selectedIndex = units.length > 1 ? 1 : 0;
+}
+
+function tempToKelvin(v, unit){
+  if(unit === '°C') return v + 273.15;
+  if(unit === 'K') return v;
+  if(unit === '°F') return (v - 32) * 5/9 + 273.15;
+}
+function kelvinTo(v, unit){
+  if(unit === '°C') return v - 273.15;
+  if(unit === 'K') return v;
+  if(unit === '°F') return (v - 273.15) * 9/5 + 32;
+}
+
+function formatNumber(n){
+  if(!isFinite(n)) return '—';
+  if(Math.abs(n) !== 0 && (Math.abs(n) < 0.0001 || Math.abs(n) >= 1e9)){
+    return n.toExponential(4).replace('e','·10^').replace('+','');
+  }
+  const rounded = Math.round(n * 1e6) / 1e6;
+  return rounded.toLocaleString('fr-FR', { maximumFractionDigits:6 });
+}
+
+function tempFormula(from, to){
+  if(from === to) return "valeur inchangée";
+  const map = {
+    '°C→K':'ajouter 273,15',
+    'K→°C':'soustraire 273,15',
+    '°C→°F':'multiplier par 9/5 puis ajouter 32',
+    '°F→°C':'soustraire 32 puis multiplier par 5/9',
+    'K→°F':'soustraire 273,15, multiplier par 9/5, ajouter 32',
+    '°F→K':'soustraire 32, multiplier par 5/9, ajouter 273,15'
+  };
+  return map[`${from}→${to}`] || 'conversion via le Kelvin';
+}
+
+function compute(recordHistory){
+  const raw = valueEl.value.replace(',', '.');
+  const v = parseFloat(raw);
+  const cat = categories[currentCat];
+  const from = unitFromEl.value;
+  const to = unitToEl.value;
+
+  if(isNaN(v)){
+    resultValueEl.textContent = '—';
+    resultUnitEl.textContent = '';
+    resultSubEl.textContent = '';
+    formulaTextEl.textContent = 'Entre une valeur numérique valide.';
+    lastResult = null;
+    return;
+  }
+
+  let result;
+  if(cat.type === 'temp'){
+    const kelvin = tempToKelvin(v, from);
+    result = kelvinTo(kelvin, to);
+    formulaTextEl.textContent = tempFormula(from, to);
+  } else {
+    const factorFrom = cat.units[from];
+    const factorTo = cat.units[to];
+    result = v * factorFrom / factorTo;
+    const ratio = factorFrom / factorTo;
+    formulaTextEl.textContent = `multiplier la valeur par ${formatNumber(ratio)}`;
+  }
+
+  resultValueEl.textContent = formatNumber(result);
+  resultUnitEl.textContent = to;
+  resultSubEl.textContent = `${formatNumber(v)} ${from} = ${formatNumber(result)} ${to}`;
+  lastResult = { cat: currentCat, from, to, value:v, result };
+
+  if(recordHistory){
+    const hist = loadHistory();
+    hist.unshift({ ...lastResult, ts: Date.now() });
+    saveHistory(hist.slice(0, 12));
+    renderHistory();
+  }
+  updateStarState();
+}
+
+// --- Favoris ---
+function favKey(f){ return `${f.cat}|${f.from}|${f.to}`; }
+
+function updateStarState(){
+  const favs = loadFavorites();
+  const key = `${currentCat}|${unitFromEl.value}|${unitToEl.value}`;
+  const isFav = favs.some(f => favKey(f) === key);
+  starBtn.classList.toggle('active', isFav);
+}
+
+function renderFavorites(){
+  const favs = loadFavorites();
+  if(favs.length === 0){
+    favList.innerHTML = `<div class="panel-empty">Aucun favori pour l'instant. Touche l'étoile en haut pour en ajouter un.</div>`;
+    return;
+  }
+  favList.innerHTML = favs.map((f,i)=>`
+    <div class="list-item">
+      <div class="main" data-index="${i}">
+        <strong>${categories[f.cat].label}</strong>
+        <span>${f.from} → ${f.to}</span>
+      </div>
+      <button class="remove" data-remove="${i}" aria-label="Retirer">✕</button>
+    </div>
+  `).join('');
+  favList.querySelectorAll('.main').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const f = favs[+el.dataset.index];
+      currentCat = f.cat;
+      buildTabs(); buildUnitSelects(f.from, f.to); compute();
+    });
+  });
+  favList.querySelectorAll('[data-remove]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const idx = +el.dataset.remove;
+      const updated = favs.filter((_,i)=>i!==idx);
+      saveFavorites(updated);
+      renderFavorites();
+      updateStarState();
+    });
+  });
+}
+
+function renderHistory(){
+  const hist = loadHistory();
+  if(hist.length === 0){
+    histList.innerHTML = '<div class="panel-empty">Aucune conversion récente.</div>';
+    return;
+  }
+  histList.innerHTML = hist.map((h,i)=>`
+    <div class="list-item">
+      <div class="main" data-index="${i}">
+        <strong>${formatNumber(h.value)} ${h.from} → ${formatNumber(h.result)} ${h.to}</strong>
+        <span>${categories[h.cat].label} · ${new Date(h.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span>
+      </div>
+      <button class="remove" data-remove="${i}" aria-label="Retirer">✕</button>
+    </div>
+  `).join('');
+  histList.querySelectorAll('.main').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const h = hist[+el.dataset.index];
+      currentCat = h.cat;
+      valueEl.value = h.value;
+      buildTabs(); buildUnitSelects(h.from, h.to); compute();
+    });
+  });
+  histList.querySelectorAll('[data-remove]').forEach(el=>{
+    el.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const idx = +el.dataset.remove;
+      const updated = hist.filter((_,i)=>i!==idx);
+      saveHistory(updated);
+      renderHistory();
+    });
+  });
+}
+
+starBtn.addEventListener('click', ()=>{
+  const favs = loadFavorites();
+  const key = `${currentCat}|${unitFromEl.value}|${unitToEl.value}`;
+  const idx = favs.findIndex(f => favKey(f) === key);
+  if(idx >= 0){
+    favs.splice(idx,1);
+  } else {
+    favs.unshift({ cat:currentCat, from:unitFromEl.value, to:unitToEl.value });
+  }
+  saveFavorites(favs.slice(0,20));
+  updateStarState();
+  renderFavorites();
+});
+
+function togglePanel(panel, btn, otherPanel, otherBtn){
+  const opening = !panel.classList.contains('open');
+  otherPanel.classList.remove('open');
+  otherBtn.classList.remove('panel-open');
+  panel.classList.toggle('open', opening);
+  btn.classList.toggle('panel-open', opening);
+}
+favBtn.addEventListener('click', ()=>{ renderFavorites(); togglePanel(favPanel, favBtn, histPanel, histBtn); });
+histBtn.addEventListener('click', ()=>{ renderHistory(); togglePanel(histPanel, histBtn, favPanel, favBtn); });
+
+swapBtn.addEventListener('click', ()=>{
+  const f = unitFromEl.value;
+  unitFromEl.value = unitToEl.value;
+  unitToEl.value = f;
+  compute();
+});
+
+copyBtn.addEventListener('click', async ()=>{
+  const text = `${resultValueEl.textContent} ${resultUnitEl.textContent}`;
+  try{
+    await navigator.clipboard.writeText(text);
+    copyBtn.textContent = 'Copié ✓';
+    copyBtn.classList.add('copied');
+    setTimeout(()=>{ copyBtn.textContent = 'Copier'; copyBtn.classList.remove('copied'); }, 1400);
+  }catch(e){
+    copyBtn.tex
