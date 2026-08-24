@@ -1,0 +1,68 @@
+name: Build APK
+
+# Se lance automatiquement à chaque modification envoyée sur GitHub,
+# et peut aussi être relancé à la main depuis l'onglet "Actions" du site
+# (bouton "Run workflow") — pratique depuis un téléphone.
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Deux versions compilées en une seule fois :
+        # "perso"   -> sans aucune pub (pour toi)
+        # "partage" -> avec la bannière pub (pour tes camarades)
+        variant: [perso, partage]
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Régler les pubs selon la version
+        if: matrix.variant == 'perso'
+        run: "sed -i 's/ADS_ENABLED: true/ADS_ENABLED: false/' www/config.js"
+
+      - name: Installer les dépendances du projet
+        run: npm install
+
+      - name: Ajouter la plateforme Android
+        run: npx cap add android
+
+      - name: Générer l'icône et le splash screen (identité "Étalon")
+        run: python3 resources/decode_assets.py
+
+      - name: Copier les fichiers web dans le projet Android
+        run: npx cap sync android
+
+      - name: Déclarer l'ID AdMob dans le manifeste Android (obligatoire, sinon l'appli plante au démarrage)
+        run: python3 resources/patch_manifest.py
+
+      - name: Installer Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Installer le SDK Android
+        uses: android-actions/setup-android@v3
+
+      - name: Compiler l'APK
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Mettre l'APK à disposition au téléchargement
+        uses: actions/upload-artifact@v4
+        with:
+          name: convertisseur-${{ matrix.variant }}
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          
